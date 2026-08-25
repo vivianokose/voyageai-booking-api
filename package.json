@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/app.js",
     "test": "node tests/app.test.js",
-    "lint": "echo 'Running lint checks...' && node -e \"require('./src/app.js')\" && echo 'Lint passed'"
+    "lint": "echo 'Running lint checks...' && node --check src/app.js && echo 'Lint passed'"
   },
   "author": "Vivian Okose",
   "license": "MIT"
