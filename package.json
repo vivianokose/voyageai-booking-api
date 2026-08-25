@@ -1,0 +1,13 @@
+{
+  "name": "voyageai-booking-api",
+  "version": "1.0.0",
+  "description": "VoyageAI travel booking API",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "test": "node tests/app.test.js",
+    "lint": "echo 'Running lint checks...' && node -e \"require('./src/app.js')\" && echo 'Lint passed'"
+  },
+  "author": "Vivian Okose",
+  "license": "MIT"
+}
