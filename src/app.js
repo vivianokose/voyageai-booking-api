@@ -14,7 +14,7 @@ const routes = {
     ]
   }),
   '/destinations': () => ({
-    destinations: ['Lagos', 'Accra', 'Nairobi', 'Cairo', 'Cape Town']
+    destinations: ['Lagos', 'Accra', 'Nairobi', 'Cairo', 'Cape Town', 'Kigali']
   })
 };
 
