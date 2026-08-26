@@ -42,6 +42,7 @@ pipeline {
         }
 
         stage('Deploy to App Server') {
+            when { branch 'main' }
             steps {
                 sshagent(credentials: ['jenkins-deploy-key']) {
                     sh """
@@ -59,6 +60,7 @@ pipeline {
         }
 
         stage('Verify Deployment') {
+            when { branch 'main' }
             steps {
                 sshagent(credentials: ['jenkins-deploy-key']) {
                     sh """
