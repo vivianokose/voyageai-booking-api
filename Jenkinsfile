@@ -1,3 +1,5 @@
+@Library('voyageai-lib') _
+
 pipeline {
     agent any
 
@@ -8,6 +10,7 @@ pipeline {
         APP_SERVER_IP   = credentials('app-server-ip')
         APP_SERVER_USER = 'root'
         APP_PORT        = '3000'
+        DOCKERHUB_USER  = 'vivianokose'
     }
 
     stages {
@@ -33,11 +36,9 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build & Push Image') {
             steps {
-                echo "Building Docker image: ${DOCKER_IMAGE}"
-                sh "docker build -t ${DOCKER_IMAGE} ."
-                sh "docker images | grep ${APP_NAME}"
+                buildAndPushImage(image: env.APP_NAME, tag: env.APP_VERSION)
             }
         }
 
@@ -46,13 +47,11 @@ pipeline {
             steps {
                 sshagent(credentials: ['jenkins-deploy-key']) {
                     sh """
-                        docker save ${DOCKER_IMAGE} | ssh -o StrictHostKeyChecking=no ${APP_SERVER_USER}@${APP_SERVER_IP} 'docker load'
-                    """
-                    sh """
                         ssh -o StrictHostKeyChecking=no ${APP_SERVER_USER}@${APP_SERVER_IP} '
                             docker stop ${APP_NAME} 2>/dev/null || true
                             docker rm ${APP_NAME} 2>/dev/null || true
-                            docker run -d --name ${APP_NAME} --restart unless-stopped -p ${APP_PORT}:3000 -e APP_VERSION=${APP_VERSION} ${DOCKER_IMAGE}
+                            docker pull ${DOCKERHUB_USER}/${APP_NAME}:${APP_VERSION}
+                            docker run -d --name ${APP_NAME} --restart unless-stopped -p ${APP_PORT}:3000 -e APP_VERSION=${APP_VERSION} ${DOCKERHUB_USER}/${APP_NAME}:${APP_VERSION}
                         '
                     """
                 }
@@ -81,7 +80,6 @@ pipeline {
             echo "Pipeline failed. Review the stage logs above."
         }
         always {
-            sh "docker rmi ${DOCKER_IMAGE} 2>/dev/null || true"
             echo "Pipeline complete. Build: ${BUILD_NUMBER}"
         }
     }
