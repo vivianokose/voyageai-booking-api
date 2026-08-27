@@ -5,7 +5,6 @@ pipeline {
 
     environment {
         APP_NAME        = 'voyageai-booking-api'
-        APP_SERVER_IP   = credentials('app-server-ip')
         APP_SERVER_USER = 'root'
         APP_PORT        = '3000'
         DOCKERHUB_USER  = 'vivianokose'
@@ -73,15 +72,17 @@ pipeline {
         stage('Deploy to App Server') {
             when { branch 'main' }
             steps {
-                sshagent(credentials: ['jenkins-deploy-key']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ${APP_SERVER_USER}@${APP_SERVER_IP} '
-                            docker stop ${APP_NAME} 2>/dev/null || true
-                            docker rm ${APP_NAME} 2>/dev/null || true
-                            docker pull ${DOCKERHUB_USER}/${APP_NAME}:${NEW_VERSION}
-                            docker run -d --name ${APP_NAME} --restart unless-stopped -p ${APP_PORT}:3000 -e APP_VERSION=${NEW_VERSION} ${DOCKERHUB_USER}/${APP_NAME}:${NEW_VERSION}
-                        '
-                    """
+                withCredentials([string(credentialsId: 'app-server-ip', variable: 'APP_SERVER_IP')]) {
+                    sshagent(credentials: ['jenkins-deploy-key']) {
+                        sh '''
+                            ssh -o StrictHostKeyChecking=no $APP_SERVER_USER@$APP_SERVER_IP "
+                                docker stop $APP_NAME 2>/dev/null || true
+                                docker rm $APP_NAME 2>/dev/null || true
+                                docker pull $DOCKERHUB_USER/$APP_NAME:$NEW_VERSION
+                                docker run -d --name $APP_NAME --restart unless-stopped -p $APP_PORT:3000 -e APP_VERSION=$NEW_VERSION $DOCKERHUB_USER/$APP_NAME:$NEW_VERSION
+                            "
+                        '''
+                    }
                 }
             }
         }
@@ -89,11 +90,13 @@ pipeline {
         stage('Verify Deployment') {
             when { branch 'main' }
             steps {
-                sshagent(credentials: ['jenkins-deploy-key']) {
-                    sh """
-                        sleep 10
-                        ssh -o StrictHostKeyChecking=no ${APP_SERVER_USER}@${APP_SERVER_IP} 'curl -sf http://localhost:3000/health || exit 1'
-                    """
+                withCredentials([string(credentialsId: 'app-server-ip', variable: 'APP_SERVER_IP')]) {
+                    sshagent(credentials: ['jenkins-deploy-key']) {
+                        sh '''
+                            sleep 10
+                            ssh -o StrictHostKeyChecking=no $APP_SERVER_USER@$APP_SERVER_IP 'curl -sf http://localhost:3000/health || exit 1'
+                        '''
+                    }
                 }
                 echo "Deployment verified. App is healthy at version ${NEW_VERSION}."
             }
@@ -109,8 +112,8 @@ pipeline {
                     sh '''
                         git config user.email "jenkins@voyageai.com"
                         git config user.name "Jenkins CI"
-                        git tag -a v${NEW_VERSION} -m "release v${NEW_VERSION}"
-                        git push https://${GIT_USER}:${GIT_TOKEN}@github.com/vivianokose/voyageai-booking-api.git v${NEW_VERSION}
+                        git tag -a v$NEW_VERSION -m "release v$NEW_VERSION"
+                        git push https://$GIT_USER:$GIT_TOKEN@github.com/vivianokose/voyageai-booking-api.git v$NEW_VERSION
                     '''
                 }
                 echo "Tagged and pushed release v${NEW_VERSION}"
